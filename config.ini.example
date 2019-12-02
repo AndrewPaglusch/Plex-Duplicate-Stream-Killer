@@ -1,0 +1,10 @@
+[main]
+loop_delay_seconds: 10
+plex_url = http://127.0.0.1:10400
+plex_token: ** https://bit.ly/34FeMCo **
+ban_length_hrs: 48
+ban_msg: YOU HAVE BEEN BANNED FROM PLEX FOR 48 HOURS FOR ACCOUNT SHARING. Please ask @AdminNameHere if you have any questions. This is an automated message
+
+[telegram]
+bot_key: ** https://bit.ly/33GhZjV **
+chat_id: ** Telegram Group ID **
