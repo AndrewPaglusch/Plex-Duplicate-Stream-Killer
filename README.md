@@ -1,5 +1,5 @@
 # Plex Duplicate Stream Killer
-Automatically ban users who share their Plex account with others.
+Automatically ban users who share their Plex account with others. **This requires an active [PlexPass](https://www.plex.tv/plex-pass/) subscription to work.**
 
 # What It Does
 This script will query your Plex server every 10 seconds (default) and get a list of current streams. It will automatically kill all streams for a user if two or more of their streams are coming different IP addresses. 
