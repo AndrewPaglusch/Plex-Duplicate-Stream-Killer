@@ -7,6 +7,7 @@ This script will query your Plex server every 10 seconds (default) and get a lis
 # Requirements
 - Python 3.X
 - Python `requests` module
+- Active [PlexPass](https://www.plex.tv/plex-pass/) subscription
 
 ## Examples
 
