@@ -83,6 +83,12 @@ def _parse_streams(jstreams):
 
     return dreturn
 
+def save_bans(ban_list):
+    """save ban_list to disk"""
+    json_bans = json.dumps(ban_list)
+
+def load_bans():
+    """load bans from disk"""
 
 def dup_check(user_streams):
     """Returns number of unique ip addresses for user"""
@@ -122,6 +128,10 @@ def is_ban_valid(username, ban_list):
     """Return True/False if user is still banned according to ban_list"""
     logging.debug(f"Checking to see if ban for {username} is valid")
     return int(time.time()) <= ban_list[username]
+
+def ban_time_left_human(username, ban_list):
+    """Return human remaining time of ban"""
+    return time.strftime("%H hours and %M minutes", time.gmtime(ban_list[username] - time.time()))
 
 
 def unban_user(username, ban_list):
@@ -172,7 +182,7 @@ try:
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
                     print(f"Killing all streams for banned user {user}")
-                    kill_all_streams(streams[user], ban_msg, plex_url, plex_token)
+                    kill_all_streams(streams[user], ban_msg + "Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
                 else:
                     # ban has expired
