@@ -129,9 +129,13 @@ def is_ban_valid(username, ban_list):
     logging.debug(f"Checking to see if ban for {username} is valid")
     return int(time.time()) <= ban_list[username]
 
+
 def ban_time_left_human(username, ban_list):
     """Return human remaining time of ban"""
-    return time.strftime("%H hours and %M minutes", time.gmtime(ban_list[username] - time.time()))
+    seconds_left = ban_list[username] - time.time()
+    hours_left = seconds_left // 3600
+    minutes_left = (seconds_left - hours_left * 3600) // 60
+    return f"{int(hours_left)} hours and {int(minutes_left)} minutes"
 
 
 def unban_user(username, ban_list):
@@ -148,6 +152,7 @@ def telegram_notify(message, telegram_bot_key, chat_id):
         r.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.error(f"Hit error while sending Telegram message: {err}")
+
 
 # set default logging level and stream
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -182,7 +187,7 @@ try:
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
                     print(f"Killing all streams for banned user {user}")
-                    kill_all_streams(streams[user], ban_msg + "Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
+                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
                 else:
                     # ban has expired
@@ -197,7 +202,7 @@ try:
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
 
                 print(f"Killing all streams for {user}")
-                kill_all_streams(streams[user], ban_msg, plex_url, plex_token)
+                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
 
                 telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations",
                                 telegram_bot_key, telegram_chat_id)
