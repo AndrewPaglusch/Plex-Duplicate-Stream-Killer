@@ -21,7 +21,7 @@ def get_streams(plex_url, plex_token):
             return {}
 
     except Exception as err:
-        logging.critical(f"Error getting streams from Plex: {err}")
+        logging.error(f"Error getting streams from Plex: {err}")
         return {}
 
 
@@ -84,6 +84,29 @@ def _parse_streams(jstreams):
     return dreturn
 
 
+def save_bans(ban_list):
+    """save ban_list to disk"""
+    try:
+        with open('bans.json', 'w') as f:
+            f.write(json.dumps(ban_list))
+    except Exception as err:
+        logging.error(f'Error saving bans to disk. {err}')
+    else:
+        logging.info('Saved bans to disk')
+
+
+def load_bans():
+    """load bans from disk"""
+    try:
+        with open('bans.json', 'r') as f:
+            return json.loads(f.read())
+    except Exception as err:
+        logging.warning(f'Error loading bans from disk. {err}')
+        return {}
+    else:
+        logging.debug('Loaded bans from disk')
+
+
 def dup_check(user_streams):
     """Returns number of unique ip addresses for user"""
     if len(user_streams) == 1:
@@ -124,6 +147,14 @@ def is_ban_valid(username, ban_list):
     return int(time.time()) <= ban_list[username]
 
 
+def ban_time_left_human(username, ban_list):
+    """Return human remaining time of ban"""
+    seconds_left = ban_list[username] - time.time()
+    hours_left = seconds_left // 3600
+    minutes_left = (seconds_left - hours_left * 3600) // 60
+    return f"{int(hours_left)} hours and {int(minutes_left)} minutes"
+
+
 def unban_user(username, ban_list):
     """Remove username from ban_list and send back"""
     del ban_list[username]
@@ -138,6 +169,7 @@ def telegram_notify(message, telegram_bot_key, chat_id):
         r.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.error(f"Hit error while sending Telegram message: {err}")
+
 
 # set default logging level and stream
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -154,14 +186,14 @@ try:
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
 except FileNotFoundError as err:
-    print(f"Unable to read config file! Error: {err}")
+    logging.critical(f"Unable to read config file! Error: {err}")
     exit()
 except Exception as err:
-    print(f"Unable to parse config.ini or missing settings! Error: {err}")
+    logging.critical(f"Unable to parse config.ini or missing settings! Error: {err}")
     exit()
 
 # {'bob': EPOCHBANEND, 'joe': 0000000000}
-ban_list = {}
+ban_list = load_bans()
 
 try:
     while True:
@@ -171,23 +203,25 @@ try:
             # check to see if user is already banned
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
-                    print(f"Killing all streams for banned user {user}")
-                    kill_all_streams(streams[user], ban_msg, plex_url, plex_token)
+                    logging.info(f"Killing all streams for banned user {user}")
+                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
                 else:
                     # ban has expired
-                    print(f"Removing {user} from ban list. Ban has expired")
+                    logging.info(f"Removing {user} from ban list. Ban has expired")
                     ban_list = unban_user(user, ban_list)
+                    save_bans(ban_list)
                     telegram_notify(f"Removed {user} from ban list", telegram_bot_key, telegram_chat_id)
 
             # check to see if user needs to be banned
             uniq_stream_locations = dup_check(streams[user])
             if uniq_stream_locations > 1:
-                print(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
+                logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
+                save_bans(ban_list)
 
-                print(f"Killing all streams for {user}")
-                kill_all_streams(streams[user], ban_msg, plex_url, plex_token)
+                logging.info(f"Killing all streams for {user}")
+                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
 
                 telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations",
                                 telegram_bot_key, telegram_chat_id)
@@ -195,4 +229,4 @@ try:
         time.sleep(loop_delay_sec)
 
 except KeyboardInterrupt:
-    print('Exiting...')
+    logging.info('Exiting...')
