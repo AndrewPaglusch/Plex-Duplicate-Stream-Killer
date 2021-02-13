@@ -184,6 +184,7 @@ try:
     max_unique_streams = int(config.get('main', 'max_unique_streams'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
+    whitelist = config.get('main', 'whitelist').lower().split()
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
 except FileNotFoundError as err:
@@ -201,6 +202,11 @@ try:
         streams = get_streams(plex_url, plex_token)
 
         for user in streams:
+            # continue if the user is in a whitelist
+            if user.lower() in whitelist:
+                logging.debug(f"User {user} is in whitelist. Not going to count streams")
+                continue
+
             # check to see if user is already banned
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
