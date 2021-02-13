@@ -181,6 +181,7 @@ try:
     loop_delay_sec = int(config.get('main', 'loop_delay_seconds'))
     plex_url = config.get('main', 'plex_url')
     plex_token = config.get('main', 'plex_token')
+    max_unique_streams = int(config.get('main', 'max_unique_streams'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
     telegram_bot_key = config.get('telegram', 'bot_key')
@@ -204,7 +205,7 @@ try:
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
                     logging.info(f"Killing all streams for banned user {user}")
-                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
+                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
                 else:
                     # ban has expired
@@ -215,15 +216,15 @@ try:
 
             # check to see if user needs to be banned
             uniq_stream_locations = dup_check(streams[user])
-            if uniq_stream_locations > 1:
+            if uniq_stream_locations > max_unique_streams:
                 logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
                 save_bans(ban_list)
 
                 logging.info(f"Killing all streams for {user}")
-                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
+                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
-                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations",
+                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations.",
                                 telegram_bot_key, telegram_chat_id)
 
         time.sleep(loop_delay_sec)
