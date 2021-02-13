@@ -181,6 +181,7 @@ try:
     loop_delay_sec = int(config.get('main', 'loop_delay_seconds'))
     plex_url = config.get('main', 'plex_url')
     plex_token = config.get('main', 'plex_token')
+    max_unique_streams = int(config.get('main', 'max_unique_streams'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
     telegram_bot_key = config.get('telegram', 'bot_key')
@@ -215,7 +216,7 @@ try:
 
             # check to see if user needs to be banned
             uniq_stream_locations = dup_check(streams[user])
-            if uniq_stream_locations > 1:
+            if uniq_stream_locations > max_unique_streams:
                 logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
                 save_bans(ban_list)
