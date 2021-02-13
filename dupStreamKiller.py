@@ -205,7 +205,7 @@ try:
             if user in ban_list:
                 if is_ban_valid(user, ban_list):
                     logging.info(f"Killing all streams for banned user {user}")
-                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
+                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
                 else:
                     # ban has expired
@@ -222,9 +222,9 @@ try:
                 save_bans(ban_list)
 
                 logging.info(f"Killing all streams for {user}")
-                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}", plex_url, plex_token)
+                kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
-                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations",
+                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations.",
                                 telegram_bot_key, telegram_chat_id)
 
         time.sleep(loop_delay_sec)
