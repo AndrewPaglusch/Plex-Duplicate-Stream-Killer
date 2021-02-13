@@ -25,34 +25,12 @@ This script will query your Plex server every 10 seconds (default) and get a lis
   - **Stream 2:** IP Address 1.2.3.4
   
   The script will see that Mary's account is being used from only one unique IP address. Unless Mary's already banned, she'll be allowed to keep streaming.
-  
-# Install & Run (Systemd)
+# Build & Run (Docker)
 
 ```bash
-mkdir /opt/dup-stream-killer
-cd !$
-git clone https://github.com/AndrewPaglusch/Plex-Duplicate-Stream-Killer .
-mv config.ini.example config.ini
-vim config.ini # edit config file
-
-cat > /etc/systemd/system/dup-stream-killer.service << EOF
-[Unit]
-Description=Plex Duplicate Stream Killer
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/dup-stream-killer
-Type=simple
-ExecStart=/usr/bin/python3 -u /opt/dup-stream-killer/dupStreamKiller.py
-Restart=always
-RestartSec=15
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable dup-stream-killer --now
-journalctl -u dup-stream-killer -f
+git clone https://github.com/AndrewPaglusch/Plex-Duplicate-Stream-Killer.git
+cd Plex-Duplicate-Stream-Killer
+cp docker-compose.yml.EXAMPLE docker-compose.yml # Change the environment variables as necessary
+docker-compose up -d
 ```
 

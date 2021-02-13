@@ -105,3 +105,7 @@ venv.bak/
 
 # config file
 config.ini
+
+bans.json
+dupstreamkiller
+docker-compose.yml
