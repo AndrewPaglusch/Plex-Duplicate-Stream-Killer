@@ -172,7 +172,7 @@ def telegram_notify(message, telegram_bot_key, chat_id):
 
 
 # set default logging level and stream
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 # load settings
 try:
@@ -184,8 +184,10 @@ try:
     max_unique_streams = int(config.get('main', 'max_unique_streams'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
+    whitelist = config.get('main', 'whitelist').split()
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
+    print(whitelist)
 except FileNotFoundError as err:
     logging.critical(f"Unable to read config file! Error: {err}")
     exit()
