@@ -6,6 +6,7 @@ import requests
 import json
 import time
 import logging
+from pprint import pprint
 from configparser import ConfigParser
 
 def get_streams(plex_url, plex_token):
@@ -74,6 +75,7 @@ def _parse_streams(jstreams):
         stream_data = {'session_id': stream['Session']['id'],
                        'state': stream['Player']['state'],
                        'title': stream['title'],
+                       'device': stream['Player']['device'],
                        'ip_address': stream['Player']['address']}
 
         if username in dreturn.keys():
@@ -139,6 +141,15 @@ def kill_all_streams(user_streams, message, plex_url, plex_token):
             r.raise_for_status()
         except Exception as err:
             logging.error(f"Error while killing stream. Session data: {session}. Error: {err}")
+
+
+def log_stream_data(user_streams):
+    """Log information about each stream for a user"""
+    for stream_num, session in enumerate(user_streams):
+        device = session['device']
+        ip_addr = session['ip_address']
+        media_title = session['title']
+        logging.info(f"(Stream {stream_num}) DEVICE: \"{device}\" IPADDR: \"{ip_addr}\" MEDIA: \"{media_title}\"")
 
 
 def is_ban_valid(username, ban_list):
@@ -228,6 +239,7 @@ try:
                 save_bans(ban_list)
 
                 logging.info(f"Killing all streams for {user}")
+                log_stream_data(streams[user])
                 kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
                 telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations.",
