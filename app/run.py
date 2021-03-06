@@ -89,7 +89,7 @@ def _parse_streams(jstreams):
 def save_bans(ban_list):
     """save ban_list to disk"""
     try:
-        with open('bans.json', 'w') as f:
+        with open('/data/bans.json', 'w') as f:
             f.write(json.dumps(ban_list))
     except Exception as err:
         logging.error(f'Error saving bans to disk. {err}')
@@ -100,7 +100,7 @@ def save_bans(ban_list):
 def load_bans():
     """load bans from disk"""
     try:
-        with open('bans.json', 'r') as f:
+        with open('/data/bans.json', 'r') as f:
             return json.loads(f.read())
     except Exception as err:
         logging.warning(f'Error loading bans from disk. {err}')
