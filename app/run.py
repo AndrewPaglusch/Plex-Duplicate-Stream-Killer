@@ -6,6 +6,7 @@ import requests
 import json
 import time
 import logging
+import ipaddress
 from pprint import pprint
 from configparser import ConfigParser
 
@@ -109,14 +110,18 @@ def load_bans():
         logging.debug('Loaded bans from disk')
 
 
-def dup_check(user_streams):
+def dup_check(user_streams, network_whitelist):
     """Returns number of unique ip addresses for user"""
     if len(user_streams) == 1:
         return 1
 
     ip_address_list = []
     for stream in user_streams:
-        ip_address_list.append(stream['ip_address'])
+        # only count streams from non-whitelisted ip addresses
+        if any([ ipaddress.IPv4Address(stream['ip_address']) in n for n in network_whitelist ]):
+            logging.debug(f'Ignoring stream from {stream["ip_address"]} (whitelisted)')
+        else:
+            ip_address_list.append(stream['ip_address'])
 
     # return count of unique ip addresses for user
     return len(list(set(ip_address_list)))
@@ -195,7 +200,8 @@ try:
     max_unique_streams = int(config.get('main', 'max_unique_streams'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
-    whitelist = config.get('main', 'whitelist').lower().split()
+    user_whitelist = config.get('main', 'user_whitelist').lower().split()
+    network_whitelist = [ ipaddress.IPv4Network(n) for n in config.get('main', 'network_whitelist').split() ]
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
 except FileNotFoundError as err:
@@ -214,7 +220,7 @@ try:
 
         for user in streams:
             # continue if the user is in a whitelist
-            if user.lower() in whitelist:
+            if user.lower() in user_whitelist:
                 logging.debug(f"User {user} is in whitelist. Not going to count streams")
                 continue
 
@@ -232,7 +238,7 @@ try:
                     telegram_notify(f"Removed {user} from ban list", telegram_bot_key, telegram_chat_id)
 
             # check to see if user needs to be banned
-            uniq_stream_locations = dup_check(streams[user])
+            uniq_stream_locations = dup_check(streams[user], network_whitelist)
             if uniq_stream_locations > max_unique_streams:
                 logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)

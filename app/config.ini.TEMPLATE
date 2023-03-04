@@ -4,7 +4,8 @@ plex_url: ${PLEX_URL}
 plex_token: ${PLEX_TOKEN}
 ban_length_hrs: ${BAN_LENGTH_HRS}
 ban_msg: ${BAN_MSG}
-whitelist: ${WHITELIST}
+user_whitelist: ${USER_WHITELIST}
+network_whitelist: ${NETWORK_WHITELIST}
 max_unique_streams: ${MAX_UNIQUE_STREAMS}
 
 [telegram]
