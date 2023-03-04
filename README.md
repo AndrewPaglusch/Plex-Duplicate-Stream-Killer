@@ -25,12 +25,29 @@ This script will query your Plex server every 10 seconds (default) and get a lis
   - **Stream 2:** IP Address 1.2.3.4
   
   The script will see that Mary's account is being used from only one unique IP address. Unless Mary's already banned, she'll be allowed to keep streaming.
-# Build & Run (Docker)
 
-```bash
-git clone https://github.com/AndrewPaglusch/Plex-Duplicate-Stream-Killer.git
-cd Plex-Duplicate-Stream-Killer
-cp docker-compose.yml.EXAMPLE docker-compose.yml # Change the environment variables as necessary
-docker-compose up -d
+# Docker Compose Example
+
+**docker-compose.yml**
+```yaml
+version: "3.8"
+services:
+  dupstreamkiller:
+     image: ghcr.io/andrewpaglusch/plex-duplicate-stream-killer:v2
+     container_name: dupstreamkiller
+     restart: always
+     volumes:
+       - ./plex-duplicate-stream-killer/data:/data
+     environment:
+       LOOP_DELAY_SECONDS: 10
+       MAX_UNIQUE_STREAMS: 1
+       BAN_LENGTH_HRS: 48
+       BAN_MSG: YOU HAVE BEEN BANNED FROM PLEX FOR 48 HOURS FOR ACCOUNT SHARING. This is an automated message.
+       USER_WHITELIST: joeuser55 bobross123
+       NETWORK_WHITELIST: 10.15.16.0/24 192.168.0.0/16
+       PLEX_URL: http://my-plex-server:32400
+       PLEX_TOKEN: myplextokenhere
+       TELEGRAM_BOT_KEY: 123456789:foobarbizbazfoobarbizbaz
+       TELEGRAM_CHAT_ID: -123456789
 ```
 
