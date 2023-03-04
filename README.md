@@ -5,8 +5,8 @@ Automatically ban users who share their Plex account with others. **This require
 This script will query your Plex server every 10 seconds (default) and get a list of current streams. It will automatically kill all streams for a user if two or more of their streams are coming from different IP addresses. 
 
 # Requirements
-- Python 3.X
-- Python `requests` module
+- Docker
+- Docker Compose
 - Active [PlexPass](https://www.plex.tv/plex-pass/) subscription
 
 ## Examples
