@@ -104,7 +104,7 @@ def load_bans():
         with open('/data/bans.json', 'r') as f:
             return json.loads(f.read())
     except Exception as err:
-        logging.warning(f'Error loading bans from disk. {err}')
+        logging.info(f'bans.json does not exist or can not be read. This will be created when someone is banned. {err}')
         return {}
     else:
         logging.debug('Loaded bans from disk')
