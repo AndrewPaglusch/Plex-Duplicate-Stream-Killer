@@ -1,12 +1,15 @@
 [main]
 loop_delay_seconds: ${LOOP_DELAY_SECONDS}
-plex_url: ${PLEX_URL}
-plex_token: ${PLEX_TOKEN}
+max_unique_streams: ${MAX_UNIQUE_STREAMS}
+user_history_ban_enabled: ${USER_HISTORY_BAN_ENABLED}
+user_history_length_hrs: ${USER_HISTORY_LENGTH_HRS}
+user_history_ban_ip_thresh: ${USER_HISTORY_BAN_IP_THRESH}
 ban_length_hrs: ${BAN_LENGTH_HRS}
 ban_msg: ${BAN_MSG}
 user_whitelist: ${USER_WHITELIST}
 network_whitelist: ${NETWORK_WHITELIST}
-max_unique_streams: ${MAX_UNIQUE_STREAMS}
+plex_url: ${PLEX_URL}
+plex_token: ${PLEX_TOKEN}
 
 [telegram]
 bot_key: ${TELEGRAM_BOT_KEY}
