@@ -7,7 +7,6 @@ import json
 import time
 import logging
 import ipaddress
-from pprint import pprint
 from configparser import ConfigParser
 
 def get_streams(plex_url, plex_token):
@@ -76,7 +75,7 @@ def _parse_streams(jstreams):
         stream_data = {'session_id': stream['Session']['id'],
                        'state': stream['Player']['state'],
                        'title': stream['title'],
-                       'device': stream['Player']['device'],
+                       'device': stream['Player'].get('device', 'Unknown'),
                        'ip_address': stream['Player']['address']}
 
         if username in dreturn.keys():
@@ -109,12 +108,8 @@ def load_bans():
     else:
         logging.debug('Loaded bans from disk')
 
-
-def dup_check(user_streams, network_whitelist):
-    """Returns number of unique ip addresses for user"""
-    if len(user_streams) == 1:
-        return 1
-
+def get_unique_ips(user_streams, network_whitelist):
+    """Return list of each IP address being used in user_streams"""
     ip_address_list = []
     for stream in user_streams:
         # only count streams from non-whitelisted ip addresses
@@ -123,9 +118,34 @@ def dup_check(user_streams, network_whitelist):
         else:
             ip_address_list.append(stream['ip_address'])
 
-    # return count of unique ip addresses for user
-    return len(list(set(ip_address_list)))
+    # return list of unique ip addresses for user streams
+    return list(set(ip_address_list))
 
+def log_user_ip_history(user_history, user, uniq_streams):
+    """log ip addresses being used by user to user_history, along with timestamp"""
+    user_history.setdefault(user, [])
+    time_now = int(time.time())
+    user_history[user].extend((time_now, ip) for ip in uniq_streams)
+    return user_history
+
+def cleanup_user_history(user_history, user_history_length_hrs):
+    """remove history that is older than user_history_length_hrs for all users"""
+    epoch_cutoff = int(time.time()) - (3600 * user_history_length_hrs)
+    filtered_history = {}
+ 
+    for user, entries in user_history.items():
+        kept_entries = [(epoch, ip_address) for epoch, ip_address in entries if epoch >= epoch_cutoff]
+        filtered_history[user] = kept_entries
+ 
+    return filtered_history
+
+def count_ips_in_history(user_history, user):
+    """return the number of unique ip addresses a user has logged in user_history"""
+    if user not in user_history:
+        return 0
+
+    uniq_ips = set(ip for _, ip in user_history[user])
+    return len(uniq_ips)
 
 def ban_user(username, ban_length_hrs, ban_list):
     """Record username and epoch of ban. Return ban_list with new ban added"""
@@ -198,6 +218,9 @@ try:
     plex_url = config.get('main', 'plex_url')
     plex_token = config.get('main', 'plex_token')
     max_unique_streams = int(config.get('main', 'max_unique_streams'))
+    user_history_ban_enabled = config.get('main', 'user_history_ban_enabled').lower() == "true"
+    user_history_length_hrs = int(config.get('main', 'user_history_length_hrs'))
+    user_history_ban_ip_thresh = int(config.get('main', 'user_history_ban_ip_thresh'))
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
     user_whitelist = config.get('main', 'user_whitelist').lower().split()
@@ -213,6 +236,9 @@ except Exception as err:
 
 # {'bob': EPOCHBANEND, 'joe': 0000000000}
 ban_list = load_bans()
+
+# {'bob': [(EPOCH1, IPADDR), (EPOCH2, IPADDR),...,]
+user_history = {}
 
 try:
     while True:
@@ -237,10 +263,31 @@ try:
                     save_bans(ban_list)
                     telegram_notify(f"Removed {user} from ban list", telegram_bot_key, telegram_chat_id)
 
-            # check to see if user needs to be banned
-            uniq_stream_locations = dup_check(streams[user], network_whitelist)
-            if uniq_stream_locations > max_unique_streams:
-                logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations")
+            #get a unique list of ip addresses that the user is currently streaming with
+            uniq_streams = get_unique_ips(streams[user], network_whitelist)
+
+            # log user ip history to user_history
+            if user_history_ban_enabled:
+                user_history = log_user_ip_history(user_history, user, uniq_streams)
+                user_history = cleanup_user_history(user_history, user_history_length_hrs)
+
+                # check history to see if too many unique ips have been logged over the past user_history_length_hrs hours
+                uniq_ip_history = count_ips_in_history(user_history, user)
+                if uniq_ip_history > user_history_ban_ip_thresh:
+                    logging.info(f"Banning user {user} for streaming from more than {uniq_ip_history} IP addresses over the previous {user_history_ban_ip_thresh} hours")
+                    ban_list = ban_user(user, ban_length_hrs, ban_list)
+                    save_bans(ban_list)
+
+                    logging.info(f"Killing all streams for {user}")
+                    kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
+
+                    telegram_notify(f"Banning user {user} for streaming from more than {uniq_ip_history} IP addresses over the previous {user_history_ban_ip_thresh} hours", telegram_bot_key, telegram_chat_id)
+                    continue
+
+            # check user streams to see if greater than max_unique_streams
+            uniq_stream_count = len(uniq_streams)
+            if uniq_stream_count > max_unique_streams:
+                logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_count} unique locations. Streams will be killed on next iteration")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
                 save_bans(ban_list)
 
@@ -248,8 +295,7 @@ try:
                 log_stream_data(streams[user])
                 kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
-                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_locations} unique locations.",
-                                telegram_bot_key, telegram_chat_id)
+                telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_count} unique locations.", telegram_bot_key, telegram_chat_id)
 
         time.sleep(loop_delay_sec)
 
