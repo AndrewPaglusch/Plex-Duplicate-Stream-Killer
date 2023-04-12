@@ -274,20 +274,20 @@ try:
                 # check history to see if too many unique ips have been logged over the past user_history_length_hrs hours
                 uniq_ip_history = count_ips_in_history(user_history, user)
                 if uniq_ip_history > user_history_ban_ip_thresh:
-                    logging.info(f"Banning user {user} for streaming from more than {uniq_ip_history} IP addresses over the previous {user_history_ban_ip_thresh} hours")
+                    logging.info(f"Banning user {user} for streaming from more than {user_history_ban_ip_thresh} IP addresses over the previous {user_history_ban_ip_thresh} hours")
                     ban_list = ban_user(user, ban_length_hrs, ban_list)
                     save_bans(ban_list)
 
                     logging.info(f"Killing all streams for {user}")
                     kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
-                    telegram_notify(f"Banning user {user} for streaming from more than {uniq_ip_history} IP addresses over the previous {user_history_ban_ip_thresh} hours", telegram_bot_key, telegram_chat_id)
+                    telegram_notify(f"Banning user {user} for streaming from more than {user_history_ban_ip_thresh} IP addresses over the previous {user_history_ban_ip_thresh} hours", telegram_bot_key, telegram_chat_id)
                     continue
 
             # check user streams to see if greater than max_unique_streams
             uniq_stream_count = len(uniq_streams)
             if uniq_stream_count > max_unique_streams:
-                logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_count} unique locations. Streams will be killed on next iteration")
+                logging.info(f"Banning user {user} for {ban_length_hrs} hours for streaming from {uniq_stream_count} unique locations.")
                 ban_list = ban_user(user, ban_length_hrs, ban_list)
                 save_bans(ban_list)
 
