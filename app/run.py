@@ -178,13 +178,11 @@ def log_stream_data(user_streams):
         logging.info(f"(Stream {stream_num}) DEVICE: \"{device}\" IPADDR: \"{ip_addr}\" MEDIA: \"{media_title}\"")
 
 def log_ip_history(username, user_history):
-    ip_history = []
     logging.info(f"IP history for user {username}:")
-
-    for entry in user_history[username]:
-        timestamp, ip_address = entry
-        if not ip_history or ip_history[-1][1] != ip_address:
-            ip_history.append((timestamp, ip_address))
+    last_ip_seen = None
+    for timestamp, ip_address in user_history[username]:
+        if last_ip_seen != ip_address:
+            last_ip_seen = ip_address
             logging.info(f"{datetime.fromtimestamp(timestamp)} - {ip_address}")
 
 def is_ban_valid(username, ban_list):
