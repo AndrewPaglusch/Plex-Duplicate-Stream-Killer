@@ -87,28 +87,6 @@ def _parse_streams(jstreams):
     return dreturn
 
 
-def save_bans(ban_list):
-    """save ban_list to disk"""
-    try:
-        with open('/data/bans.json', 'w') as f:
-            f.write(json.dumps(ban_list))
-    except Exception as err:
-        logging.error(f'Error saving bans to disk. {err}')
-    else:
-        logging.info('Saved bans to disk')
-
-
-def load_bans():
-    """load bans from disk"""
-    try:
-        with open('/data/bans.json', 'r') as f:
-            return json.loads(f.read())
-    except Exception as err:
-        logging.info(f'bans.json does not exist or can not be read. This will be created when someone is banned. {err}')
-        return {}
-    else:
-        logging.debug('Loaded bans from disk')
-
 def get_unique_ips(user_streams, network_whitelist):
     """Return list of each IP address being used in user_streams"""
     ip_address_list = []
@@ -122,15 +100,17 @@ def get_unique_ips(user_streams, network_whitelist):
     # return list of unique ip addresses for user streams
     return list(set(ip_address_list))
 
+
 def log_user_ip_history(user_history, user, uniq_streams):
-    """log ip addresses being used by user to user_history, along with timestamp"""
+    """Log IP addresses being used by user to user_history, along with timestamp"""
     user_history.setdefault(user, [])
     time_now = int(time.time())
     user_history[user].extend((time_now, ip) for ip in uniq_streams)
     return user_history
 
+
 def cleanup_user_history(user_history, user_history_length_hrs):
-    """remove history that is older than user_history_length_hrs for all users"""
+    """Remove history that is older than user_history_length_hrs for all users"""
     epoch_cutoff = int(time.time()) - (3600 * user_history_length_hrs)
     filtered_history = {}
  
@@ -140,36 +120,17 @@ def cleanup_user_history(user_history, user_history_length_hrs):
  
     return filtered_history
 
+
 def count_ips_in_history(user_history, user):
-    """return the number of unique ip addresses a user has logged in user_history"""
+    """Return the number of unique ip addresses a user has logged in user_history"""
     if user not in user_history:
         return 0
 
     uniq_ips = set(ip for _, ip in user_history[user])
     return len(uniq_ips)
 
-def ban_user(username, ban_length_hrs, ban_list):
-    """Record username and epoch of ban. Return ban_list with new ban added"""
-    ban_list[username] = int(time.time()) + (3600 * ban_length_hrs)
-    return ban_list
 
-
-def kill_all_streams(user_streams, message, plex_url, plex_token):
-    """Term each user stream and send them a message"""
-    for session in user_streams:
-        try:
-            payload = {'sessionId': session['session_id'],
-                       'reason': message,
-                       'X-Plex-Token': plex_token}
-            r = requests.get(f"{plex_url}/status/sessions/terminate",
-                             params=payload,
-                             headers={"Accept": "application/json"})
-            r.raise_for_status()
-        except Exception as err:
-            logging.error(f"Error while killing stream. Session data: {session}. Error: {err}")
-
-
-def log_stream_data(user_streams):
+def print_stream_data(user_streams):
     """Log information about each stream for a user"""
     for stream_num, session in enumerate(user_streams):
         device = session['device']
@@ -177,13 +138,44 @@ def log_stream_data(user_streams):
         media_title = session['title']
         logging.info(f"(Stream {stream_num}) DEVICE: \"{device}\" IPADDR: \"{ip_addr}\" MEDIA: \"{media_title}\"")
 
-def log_ip_history(username, user_history):
+
+def print_ip_history(username, user_history):
+    """Print out a summary of the IP history for the given user to the console"""
     logging.info(f"IP history for user {username}:")
     last_ip_seen = None
     for timestamp, ip_address in user_history[username]:
         if last_ip_seen != ip_address:
             last_ip_seen = ip_address
             logging.info(f"{datetime.fromtimestamp(timestamp)} - {ip_address}")
+
+
+def save_bans(ban_list):
+    """Save ban_list to disk"""
+    try:
+        with open('/data/bans.json', 'w') as f:
+            f.write(json.dumps(ban_list))
+    except Exception as err:
+        logging.error(f'Error saving bans to disk. {err}')
+    else:
+        logging.info('Saved bans to disk')
+
+
+def load_bans():
+    """Load bans from disk"""
+    try:
+        with open('/data/bans.json', 'r') as f:
+            return json.loads(f.read())
+    except Exception as err:
+        logging.info(f'bans.json does not exist or can not be read. This will be created when someone is banned. {err}')
+        return {}
+    else:
+        logging.debug('Loaded bans from disk')
+
+def ban_user(username, ban_length_hrs, ban_list):
+    """Record username and epoch of ban. Return ban_list with new ban added"""
+    ban_list[username] = int(time.time()) + (3600 * ban_length_hrs)
+    return ban_list
+
 
 def is_ban_valid(username, ban_list):
     """Return True/False if user is still banned according to ban_list"""
@@ -204,6 +196,21 @@ def unban_user(username, ban_list):
     del ban_list[username]
     logging.info(f"Removed {username} from ban list")
     return ban_list
+
+
+def kill_all_streams(user_streams, message, plex_url, plex_token):
+    """Term each user stream and send them a message"""
+    for session in user_streams:
+        try:
+            payload = {'sessionId': session['session_id'],
+                       'reason': message,
+                       'X-Plex-Token': plex_token}
+            r = requests.get(f"{plex_url}/status/sessions/terminate",
+                             params=payload,
+                             headers={"Accept": "application/json"})
+            r.raise_for_status()
+        except Exception as err:
+            logging.error(f"Error while killing stream. Session data: {session}. Error: {err}")
 
 
 def telegram_notify(message, telegram_bot_key, chat_id):
@@ -291,7 +298,7 @@ try:
                     save_bans(ban_list)
 
                     logging.info(f"Killing all streams for {user}")
-                    log_ip_history(user, user_history)
+                    print_ip_history(user, user_history)
                     kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
                     telegram_notify(f"Banning user {user} for streaming from more than {user_history_ban_ip_thresh} IP addresses over the previous {user_history_ban_ip_thresh} hours", telegram_bot_key, telegram_chat_id)
@@ -305,7 +312,7 @@ try:
                 save_bans(ban_list)
 
                 logging.info(f"Killing all streams for {user}")
-                log_stream_data(streams[user])
+                print_stream_data(streams[user])
                 kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
                 telegram_notify(f"Banned {user} for {ban_length_hrs} hours for streaming from {uniq_stream_count} unique locations.", telegram_bot_key, telegram_chat_id)
