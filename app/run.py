@@ -7,6 +7,7 @@ import json
 import time
 import logging
 import ipaddress
+from datetime import datetime
 from configparser import ConfigParser
 
 def get_streams(plex_url, plex_token):
@@ -176,6 +177,15 @@ def log_stream_data(user_streams):
         media_title = session['title']
         logging.info(f"(Stream {stream_num}) DEVICE: \"{device}\" IPADDR: \"{ip_addr}\" MEDIA: \"{media_title}\"")
 
+def log_ip_history(username, user_history):
+    ip_history = []
+    logging.info(f"IP history for user {username}:")
+
+    for entry in user_history[username]:
+        timestamp, ip_address = entry
+        if not ip_history or ip_history[-1][1] != ip_address:
+            ip_history.append((timestamp, ip_address))
+            logging.info(f"{datetime.fromtimestamp(timestamp)} - {ip_address}")
 
 def is_ban_valid(username, ban_list):
     """Return True/False if user is still banned according to ban_list"""
@@ -206,9 +216,13 @@ def telegram_notify(message, telegram_bot_key, chat_id):
     except requests.exceptions.HTTPError as err:
         logging.error(f"Hit error while sending Telegram message: {err}")
 
-
-# set default logging level and stream
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # load settings
 try:
@@ -279,6 +293,7 @@ try:
                     save_bans(ban_list)
 
                     logging.info(f"Killing all streams for {user}")
+                    log_ip_history(user, user_history)
                     kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
 
                     telegram_notify(f"Banning user {user} for streaming from more than {user_history_ban_ip_thresh} IP addresses over the previous {user_history_ban_ip_thresh} hours", telegram_bot_key, telegram_chat_id)
