@@ -270,6 +270,7 @@ try:
                     logging.info(f"Killing all streams for banned user {user}")
                     kill_all_streams(streams[user], ban_msg + f" Your ban will be lifted in {ban_time_left_human(user, ban_list)}.", plex_url, plex_token)
                     telegram_notify(f"Prevented banned user {user} from streaming", telegram_bot_key, telegram_chat_id)
+                    continue
                 else:
                     # ban has expired
                     logging.info(f"Removing {user} from ban list. Ban has expired")
