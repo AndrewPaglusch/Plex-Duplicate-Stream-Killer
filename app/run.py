@@ -114,7 +114,7 @@ def get_unique_ips(user_streams, network_whitelist):
     ip_address_list = []
     for stream in user_streams:
         # only count streams from non-whitelisted ip addresses
-        if any([ ipaddress.IPv4Address(stream['ip_address']) in n for n in network_whitelist ]):
+        if any([ ipaddress.ip_address(stream['ip_address']) in n for n in network_whitelist ]):
             logging.debug(f'Ignoring stream from {stream["ip_address"]} (whitelisted)')
         else:
             ip_address_list.append(stream['ip_address'])
@@ -238,7 +238,7 @@ try:
     ban_length_hrs = int(config.get('main', 'ban_length_hrs'))
     ban_msg = config.get('main', 'ban_msg')
     user_whitelist = config.get('main', 'user_whitelist').lower().split()
-    network_whitelist = [ ipaddress.IPv4Network(n) for n in config.get('main', 'network_whitelist').split() ]
+    network_whitelist = [ ipaddress.ip_network(n) for n in config.get('main', 'network_whitelist').split() ]
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
 except FileNotFoundError as err:
