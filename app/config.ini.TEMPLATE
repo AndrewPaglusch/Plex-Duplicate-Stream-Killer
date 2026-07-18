@@ -8,6 +8,7 @@ ban_length_hrs: ${BAN_LENGTH_HRS}
 ban_msg: ${BAN_MSG}
 user_whitelist: ${USER_WHITELIST}
 network_whitelist: ${NETWORK_WHITELIST}
+ipv6_prefix_length: ${IPV6_PREFIX_LENGTH}
 plex_url: ${PLEX_URL}
 plex_token: ${PLEX_TOKEN}
 

@@ -109,17 +109,42 @@ def load_bans():
     else:
         logging.debug('Loaded bans from disk')
 
-def get_unique_ips(user_streams, network_whitelist):
-    """Return list of each IP address being used in user_streams"""
+def get_stream_location(ip_address_str, ipv6_prefix_length):
+    """Return (ip, location) for an IP address string. "location" is the exact
+    address for IPv4, but the containing prefix (/56 by default) for IPv6, since
+    every device in a household gets its own unique IPv6 address but they all
+    share the same ISP-delegated prefix"""
+    ip = ipaddress.ip_address(ip_address_str)
+
+    # Plex on a dual-stack socket reports IPv4 clients as
+    # IPv4-mapped IPv6 addresses (::ffff:1.2.3.4)
+    if ip.version == 6 and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+
+    if ip.version == 4:
+        return ip, str(ip)
+
+    return ip, str(ipaddress.ip_network(f'{ip}/{ipv6_prefix_length}', strict=False))
+
+def get_unique_ips(user_streams, network_whitelist, ipv6_prefix_length):
+    """Return list of each unique streaming location in user_streams.
+    IPv6 streams from the same prefix count as one location"""
     ip_address_list = []
     for stream in user_streams:
+        try:
+            ip, location = get_stream_location(stream['ip_address'], ipv6_prefix_length)
+        except ValueError as err:
+            logging.warning(f'Unable to parse IP address "{stream["ip_address"]}". Counting it as-is. {err}')
+            ip_address_list.append(stream['ip_address'])
+            continue
+
         # only count streams from non-whitelisted ip addresses
-        if any([ ipaddress.ip_address(stream['ip_address']) in n for n in network_whitelist ]):
+        if any([ ip in n for n in network_whitelist ]):
             logging.debug(f'Ignoring stream from {stream["ip_address"]} (whitelisted)')
         else:
-            ip_address_list.append(stream['ip_address'])
+            ip_address_list.append(location)
 
-    # return list of unique ip addresses for user streams
+    # return list of unique streaming locations for user streams
     return list(set(ip_address_list))
 
 def log_user_ip_history(user_history, user, uniq_streams):
@@ -239,6 +264,9 @@ try:
     ban_msg = config.get('main', 'ban_msg')
     user_whitelist = config.get('main', 'user_whitelist').lower().split()
     network_whitelist = [ ipaddress.ip_network(n) for n in config.get('main', 'network_whitelist').split() ]
+    ipv6_prefix_length = int(config.get('main', 'ipv6_prefix_length', fallback='') or 56)
+    if not 1 <= ipv6_prefix_length <= 128:
+        raise ValueError(f'ipv6_prefix_length must be between 1 and 128, got {ipv6_prefix_length}')
     telegram_bot_key = config.get('telegram', 'bot_key')
     telegram_chat_id = config.get('telegram', 'chat_id')
 except FileNotFoundError as err:
@@ -279,7 +307,7 @@ try:
                     telegram_notify(f"Removed {user} from ban list", telegram_bot_key, telegram_chat_id)
 
             #get a unique list of ip addresses that the user is currently streaming with
-            uniq_streams = get_unique_ips(streams[user], network_whitelist)
+            uniq_streams = get_unique_ips(streams[user], network_whitelist, ipv6_prefix_length)
 
             # log user ip history to user_history
             if user_history_ban_enabled:

@@ -61,7 +61,7 @@ services:
       BAN_LENGTH_HRS: 48
       BAN_MSG: YOU HAVE BEEN BANNED FROM PLEX FOR 48 HOURS FOR ACCOUNT SHARING. This is an automated message.
       USER_WHITELIST: joeuser55 bobross123
-      NETWORK_WHITELIST: 10.15.16.0/24 192.168.0.0/16
+      NETWORK_WHITELIST: 10.15.16.0/24 192.168.0.0/16 2001:db8:1234::/48
       PLEX_URL: http://my-plex-server:32400
       PLEX_TOKEN: myplextokenhere
       TELEGRAM_BOT_KEY: 123456789:foobarbizbazfoobarbizbaz
@@ -78,7 +78,8 @@ services:
   - `BAN_LENGTH_HRS`: This variable specifies the duration of the ban in hours. Users will be banned for this amount of time if they are flagged for account sharing.
   - `BAN_MSG`: This is the message displayed to the user when their streams are killed, and they are banned from the Plex server.
   - `USER_WHITELIST`: This is a space-separated list of Plex usernames that are exempt from being checked for account sharing. For example: "joeuser55 bobross123".
-  - `NETWORK_WHITELIST`: This is a space-separated list of IP addresses or subnets in CIDR notation that are considered "safe" and exempt from account sharing checks. For example: "10.15.16.0/24 192.168.0.0/16".
+  - `NETWORK_WHITELIST`: This is a space-separated list of IP addresses or subnets in CIDR notation that are considered "safe" and exempt from account sharing checks. For example: "10.15.16.0/24 192.168.0.0/16 2001:db8:1234::/48".
+  - `IPV6_PREFIX_LENGTH`: (optional, default 56) Every IPv6 device gets its own unique address, so IPv6 addresses are grouped by this prefix length before counting unique locations. ISPs typically delegate a /56 or /64 per household.
   - `PLEX_URL`: This is the URL of your Plex server, including the protocol (http or https) and port number. For example: "http://my-plex-server:32400".
   - `PLEX_TOKEN`: This is your Plex server's authentication token. Replace "myplextokenhere" with your actual token.
   - `TELEGRAM_BOT_KEY`: This variable is the API key for your Telegram bot, so you can receive notifications about banned users via Telegram. Replace "123456789:foobarbizbazfoobarbizbaz" with your actual bot API key.
