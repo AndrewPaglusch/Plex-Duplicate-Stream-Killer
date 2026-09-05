@@ -113,13 +113,17 @@ def get_stream_location(ip_address_str, ipv6_prefix_length):
     """Return (ip, location) for an IP address string. "location" is the exact
     address for IPv4, but the containing prefix (/56 by default) for IPv6, since
     every device in a household gets its own unique IPv6 address but they all
-    share the same ISP-delegated prefix"""
+    share the same ISP-delegated prefix. Private addresses all map to one
+    "local" location, since they can only come from the server's own LAN"""
     ip = ipaddress.ip_address(ip_address_str)
 
     # Plex on a dual-stack socket reports IPv4 clients as
     # IPv4-mapped IPv6 addresses (::ffff:1.2.3.4)
     if ip.version == 6 and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
+
+    if ip.is_private:
+        return ip, 'local'
 
     if ip.version == 4:
         return ip, str(ip)
